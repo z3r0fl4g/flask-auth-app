@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl py-12 px-4 mx-auto">
+  <div class="bg-white rounded-lg shadow-md p-8">
+    <h1 class="text-3xl font-bold mb-6">Welcome {% if current_user.is_authenticated %}{{ current_user.name }}{% endif %}
+    </h1>
+    {% if current_user.is_authenticated %}
+    <div class="bg-gray-100 p-6 rounded-lg">
+      <p class="mb-2">Logged in via {{ current_user.provider }}</p>
+      <p class="mb-4">Email: {{ current_user.email }}</p>
+      {% if current_user.profile_pic %}
+      <img src="{{ current_user.profile_pic }}" alt="Profile picture" class="rounded-full w-24 h-24 mx-auto">
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

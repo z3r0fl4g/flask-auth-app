@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>JM Media</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 overflow-y-scroll">
+  <nav class="border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex-shrink-0">
+          <a href="/">
+            <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="JM Media Logo" class="h-10">
+          </a>
+        </div>
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-4">
+            <a href="/about"
+              class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+            <a href="/blog" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Blog</a>
+            <a href="/portfolio"
+              class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Portfolio</a>
+            <a href="/contact"
+              class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+          </div>
+        </div>
+        <div class="hidden md:block">
+          <div class="ml-4 flex items-center md:ml-6">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}"
+              class="text-gray-700 hover:text-blue-600 transition-colors px-3 py-1">
+              Logout
+            </a>
+            {% else %}
+            <a href="{{ url_for('auth.login_page') }}"
+              class="text-gray-700 hover:text-blue-600 transition-colors px-3 py-1">
+              Login
+            </a>
+            <a href="{{ url_for('auth.signup_page') }}"
+              class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors ml-2">
+              Sign Up
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    function togglePassword() {
+      const passwordField = document.getElementById('passwordField');
+      const confirmField = document.getElementById('confirmPasswordField');
+      const eyeIcon = event.currentTarget.querySelector('[data-lucide]');
+      if (passwordField && eyeIcon) {
+        if (passwordField.type === 'password') {
+          passwordField.type = 'text';
+          if (confirmField) confirmField.type = 'text';
+          eyeIcon.setAttribute('data-lucide', 'eye-off');
+        } else {
+          passwordField.type = 'password';
+          if (confirmField) confirmField.type = 'password';
+          eyeIcon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+      }
+    }
+  </script>
+</body>
+
+</html>
