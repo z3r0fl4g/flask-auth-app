@@ -1,6 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
+from functools import wraps
+from flask import redirect, url_for
 import ssl
 
 db = SQLAlchemy()
@@ -9,6 +11,15 @@ migrate = Migrate()
 
 # Configure SSL context using standard library
 ssl_context = ssl.create_default_context()
+
+# Custom decorator to require verification
+def verification_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.twofa_verified:
+            return redirect(url_for('twofa.verify'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def init_auth(app):
     # Database configuration

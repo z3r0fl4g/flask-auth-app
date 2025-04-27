@@ -23,6 +23,13 @@ class User(UserMixin, db.Model):
         password (str): Hashed password (empty for OAuth users)
         provider (str): Auth provider ('local' or OAuth service name)
         provider_id (str): Unique ID from OAuth provider
+        profile_pic (str): URL to user's profile picture
+        twofa_enabled (bool): Whether 2FA is enabled for this user
+        twofa_method (str): 2FA method (email, app, etc.)
+        twofa_secret (str): Secret key for 2FA (for authenticator apps)
+        twofa_code_hash (str): Hash of current verification code
+        twofa_code_expires (datetime): Expiration time of verification code
+        twofa_verified (bool): Whether user has completed 2FA verification
     """
     __tablename__ = 'users'
     
@@ -33,6 +40,15 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(128))
     provider = db.Column(db.String(20), default='local')
     provider_id = db.Column(db.String(120))
+    profile_pic = db.Column(db.String(500), nullable=True)  # URL to profile picture
+    
+    # Two-factor authentication fields
+    twofa_enabled = db.Column(db.Boolean, default=False)
+    twofa_method = db.Column(db.String(10), nullable=True)
+    twofa_secret = db.Column(db.String(128), nullable=True)
+    twofa_code_hash = db.Column(db.String(128), nullable=True)
+    twofa_code_expires = db.Column(db.DateTime, nullable=True)
+    twofa_verified = db.Column(db.Boolean, default=True)  # Default True for backward compatibility
     
     def check_password(self, password):
         """
@@ -81,8 +97,14 @@ class User(UserMixin, db.Model):
                 fullname=user_info.get('name'),
                 password='',  # OAuth users don't need password
                 provider=provider,
-                provider_id=user_info.get('sub') or user_info.get('id')
+                provider_id=user_info.get('sub') or user_info.get('id'),
+                twofa_verified=True  # New OAuth users don't need 2FA verification initially
             )
+            
+            # Add profile picture if available
+            if user_info.get('picture'):
+                user.profile_pic = user_info.get('picture')
+                
             db.session.add(user)
             db.session.commit()
             

@@ -22,8 +22,10 @@ with the main application. Uses Flask-Login for session management
 and Werkzeug for password hashing.
 """
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, session
 from flask_login import LoginManager, login_user, logout_user, login_required
+from .. import verification_required
+import random
 from werkzeug.security import generate_password_hash
 
 from flask_limiter.util import get_remote_address
@@ -62,6 +64,9 @@ def login_page():
     - Incorrect password for user
     - Too many requests
     """
+    # Clear any existing flash messages when visiting login page
+    if request.method == 'GET':
+        session.pop('_flashes', None)
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -72,15 +77,24 @@ def login_page():
         elif not user.check_password(password):
             flash('Incorrect password for this account', 'error')
         else:
-            login_user(user)
-            response = redirect(url_for('index'))
-            response.set_cookie(
-                'session',
-                secure=True,
-                httponly=True,
-                samesite='Lax'
-            )
-            return response
+            # Store next URL in session
+            session['next_url'] = request.args.get('next') or url_for('auth.profile')
+            
+            # Check if 2FA is enabled
+            if user.twofa_enabled:
+                session['requires_2fa'] = True
+            else:
+                session['requires_2fa'] = False  # Mark as non-2FA verification
+            
+            # Store user ID in session for verification flow
+            session['verification_user_id'] = user.id
+            
+            # Import send_verification_email here to avoid circular imports
+            from .twofa import send_verification_email
+            # Send verification email with code
+            send_verification_email(user)
+            
+            return redirect(url_for('twofa.verify'))
     return render_template('login.html')
 
 @auth_bp.route('/signup')
@@ -92,6 +106,19 @@ def signup_page():
     """
     return render_template('signup.html')
 
+@auth_bp.route('/profile')
+@login_required
+@verification_required
+def profile():
+    """
+    Display user profile page.
+    
+    Renders the profile template with user information.
+    Requires user to be logged in (@login_required)
+    and verified (@verification_required)
+    """
+    return render_template('profile.html')
+
 @auth_bp.route('/logout')
 @login_required
 def logout():
@@ -101,6 +128,8 @@ def logout():
     Clears the user session and redirects to index.
     Requires user to be logged in (@login_required)
     """
+    # Clear all flash messages before logout
+    session.pop('_flashes', None)
     logout_user()
     return redirect(url_for('index'))
 
@@ -141,18 +170,29 @@ def signup():
         flash('Email already registered', 'error')
         return redirect(url_for('auth.signup_page'))
 
-    # Create new user
+    # Create new user with 2FA enabled by default
     new_user = User(
         email=email,
         password=generate_password_hash(password),
-        provider='local'
+        provider='local',
+        twofa_enabled=True,
+        twofa_method='email'
     )
 
     db.session.add(new_user)
     db.session.commit()
 
-    login_user(new_user)
-    return redirect(url_for('index'))
+    # Store new user ID in session for verification
+    session['verification_user_id'] = new_user.id
+    session['next_url'] = url_for('auth.profile')
+    session['requires_2fa'] = True  # New users have 2FA enabled by default
+    
+    # Import send_verification_email here to avoid circular imports
+    from .twofa import send_verification_email
+    # Send verification email with code
+    send_verification_email(new_user)
+    
+    return redirect(url_for('twofa.verify'))
 
 def generate_token(email):
     """

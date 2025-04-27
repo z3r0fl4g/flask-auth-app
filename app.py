@@ -21,8 +21,11 @@ The application uses:
 from flask import Flask, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 from auth.routes.oauth import oauth_bp, init_oauth
 from auth.routes.auth import auth_bp
+from auth.routes.twofa import twofa_bp
+from auth.routes.docs import docs_bp
 from auth import init_auth
 from dotenv import load_dotenv
 import os
@@ -46,12 +49,25 @@ app.config.update(
     TWITTER_CLIENT_SECRET=os.getenv('TWITTER_CLIENT_SECRET')
 )
 
+# Configure email settings
+app.config.update(
+    MAIL_SERVER=os.getenv('MAIL_SERVER', 'smtp.gmail.com'),
+    MAIL_PORT=int(os.getenv('MAIL_PORT', 587)),
+    MAIL_USE_TLS=os.getenv('MAIL_USE_TLS', 'True').lower() in ('true', 'yes', '1'),
+    MAIL_USERNAME=os.getenv('MAIL_USERNAME'),
+    MAIL_PASSWORD=os.getenv('MAIL_PASSWORD'),
+    MAIL_DEFAULT_SENDER=os.getenv('MAIL_DEFAULT_SENDER', 'noreply@example.com')
+)
+
 # Initialize rate limiter
 limiter = Limiter(
     app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
 )
+
+# Initialize Flask-Mail
+mail = Mail(app)
 
 # Initialize Auth and Database
 init_auth(app)
@@ -62,6 +78,8 @@ init_oauth(app)
 # Register blueprints
 app.register_blueprint(oauth_bp, url_prefix='/auth')
 app.register_blueprint(auth_bp, url_prefix='/auth')
+app.register_blueprint(twofa_bp, url_prefix='/auth/2fa')
+app.register_blueprint(docs_bp, url_prefix='/docs')
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -125,4 +143,4 @@ def create_test_user():
         return f"Test user created: {test_username}/{test_password}"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

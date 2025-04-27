@@ -11,7 +11,7 @@ Implements OAuth 2.0 flows using Authlib library.
 Creates/updates user records in database upon successful auth.
 """
 
-from flask import Blueprint, redirect, url_for, session
+from flask import Blueprint, redirect, url_for, session, flash
 from authlib.integrations.flask_client import OAuth
 from flask_login import login_user
 from ..models import User  # We'll need to create this later
@@ -154,4 +154,11 @@ def authorize(provider):
     user = User.get_or_create(provider, user_info)
     login_user(user)
     
-    return redirect(url_for('index'))
+    # Check if 2FA is enabled for this user
+    if user.twofa_enabled and not user.twofa_verified:
+        # Redirect to 2FA verification page
+        flash('Please complete two-factor authentication', 'info')
+        return redirect(url_for('twofa.verify'))
+    
+    # No 2FA or already verified, proceed to profile page
+    return redirect(url_for('auth.profile'))

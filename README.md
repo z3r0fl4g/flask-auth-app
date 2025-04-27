@@ -1,28 +1,57 @@
 # Flask Authentication System
 
-A secure authentication system built with Flask, SQLAlchemy, and Werkzeug security.
+A comprehensive authentication system built with Flask, featuring modern UI design and robust security features.
 
 ## Features
 
-- User registration and login
-- Secure password hashing
-- Session management
-- Password reset functionality
-- Responsive UI with Tailwind CSS
-- Database migrations with Alembic
+- **Authentication Methods**
+
+  - Local email/password authentication
+  - OAuth integration (Google, GitHub, Twitter, Instagram)
+  - Two-factor authentication (Email verification)
+
+- **Security Features**
+
+  - Secure password hashing with Werkzeug
+  - Time-limited password reset tokens
+  - Rate limiting for sensitive endpoints
+  - CSRF protection
+  - Secure session management
+
+- **User Experience**
+
+  - Modern, responsive UI with Tailwind CSS
+  - Consistent design system
+  - Intuitive authentication flows
+  - Glassmorphism and subtle animations
+
+- **Developer Features**
+  - Database migrations with Alembic/Flask-Migrate
+  - Comprehensive documentation
+  - Modular blueprint architecture
 
 ## Project Structure
 
 ```
 .
-├── auth/                     # Authentication blueprint
-│   ├── __init__.py           # Blueprint initialization
-│   ├── models.py             # User models
+├── auth/                     # Authentication package
+│   ├── __init__.py           # Package initialization
+│   ├── models.py             # User and auth models
 │   ├── routes/               # Route handlers
-│   │   ├── auth.py           # Authentication routes
-│   │   └── oauth.py          # OAuth routes
-│   └── templates/            # Authentication templates
+│   │   ├── __init__.py       # Routes package
+│   │   ├── auth.py           # Core authentication routes
+│   │   ├── oauth.py          # OAuth provider routes
+│   │   ├── twofa.py          # Two-factor auth routes
+│   │   └── docs.py           # Documentation routes
+│   └── templates/            # Jinja2 templates
+│       ├── base.html         # Base template with layout
+│       ├── index.html        # Landing page
+│       ├── login.html        # Login form
+│       ├── signup.html       # Registration form
+│       ├── twofa_*.html      # 2FA templates
+│       └── ...               # Other templates
 ├── migrations/               # Database migrations
+├── static/                   # Static assets
 ├── app.py                    # Main application
 ├── init_db.py                # Database initialization
 ├── requirements.txt          # Python dependencies
@@ -55,8 +84,14 @@ pip install -r requirements.txt
 4. Set up environment variables:
 
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+# Create a .env file with the following variables
+FLASK_SECRET_KEY=your-secure-secret-key
+
+# OAuth credentials (optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
 ```
 
 5. Initialize the database:
@@ -64,6 +99,14 @@ cp .env.example .env
 ```bash
 python init_db.py
 ```
+
+6. Run database migrations:
+
+```bash
+python run_migrations.py
+```
+
+This will apply all pending migrations to update the database schema.
 
 ## Usage
 
@@ -75,25 +118,44 @@ python app.py
 
 The application will be available at `http://localhost:5000`
 
-## Configuration
+### Key URLs
 
-Environment variables in `.env`:
+- `/` - Home page
+- `/auth/login` - Login page
+- `/auth/signup` - Registration page
+- `/auth/2fa/settings` - Two-factor authentication settings
+- `/docs/ui-design` - UI design system documentation
 
-```
-FLASK_APP=app.py
-FLASK_ENV=development
-SECRET_KEY=your-secret-key-here
-DATABASE_URL=sqlite:///auth.db
-```
+## Security Features
 
-## Deployment
+### Password Security
 
-For production deployment:
+- Passwords are hashed using Werkzeug's security functions
+- Password reset uses time-limited tokens
+- OAuth integration avoids password storage for social logins
 
-1. Set `FLASK_ENV=production`
-2. Configure a proper WSGI server (Gunicorn, uWSGI)
-3. Set up a production database (PostgreSQL recommended)
-4. Configure HTTPS
+### Two-Factor Authentication
+
+- Email-based verification codes
+- Time-limited codes (15 minutes)
+- Rate-limited code resending (3 per hour)
+- Secure code storage with bcrypt
+
+### Session Security
+
+- Secure cookie settings (HttpOnly, SameSite)
+- Session regeneration after critical actions
+- CSRF protection on all forms
+
+## UI Design System
+
+The application follows a consistent design system with:
+
+- **Color Palette**: Primary rose color with complementary accents
+- **Typography**: Inter font family with consistent sizing
+- **Components**: Standardized buttons, forms, and cards
+- **Spacing**: 8px grid system for consistent layout
+- **Principles**: Clarity, responsiveness, and accessibility
 
 ## License
 

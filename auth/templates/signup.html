@@ -1,104 +1,89 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-  <title>Sign Up - JM Media</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
-</head>
-
-<body class="bg-gray-50">
-  <nav class="px-8 py-4">
-    <div class="container mx-auto">
-      <a href="/">
-        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="JM Media Logo" class="h-10">
-      </a>
+{% block content %}
+<div class="min-h-[calc(100vh-160px)] flex items-center justify-center px-4">
+  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200 mx-auto">
+    <div class="text-center mb-8">
+      <div class="mx-auto w-12 h-12 bg-primary-light/20 rounded-full flex items-center justify-center mb-4">
+        <i data-lucide="user-plus" class="text-primary w-6 h-6"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-800 mb-1">Create your account</h1>
     </div>
-  </nav>
 
-  <div class="min-h-[calc(100vh-80px)] flex items-center justify-center px-4">
-    <div
-      class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200 mx-auto fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-      <div class="text-center mb-8">
-        <p class="text-2xl font-bold text-gray-800 mb-1">Create your account</p>
-      </div>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="px-4 py-3 bg-red-100 text-sm text-red-700 rounded mb-6">
+      {% for message in messages %}
+      {{ message }}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
-      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-      <div class="px-4 py-2 bg-red-100 text-sm text-red-700 rounded">
-        {% for message in messages %}
-        {{ message }}
-        {% endfor %}
-      </div>
-      {% endif %}
-      {% endwith %}
-
-      <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-6 mt-8">
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">Email</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-              <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
-            </span>
-            <input type="email" name="email" placeholder="Enter your email" id="emailField"
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <div id="emailError" class="hidden text-red-500 text-[10px] mt-1 pl-1 leading-tight">
-              Must be a valid email (e.g. user@example.com)
-            </div>
+    <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-6">
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Email</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+            <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
+          </span>
+          <input type="email" name="email" placeholder="Enter your email" id="emailField"
+            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          <div id="emailError" class="hidden text-red-500 text-[10px] mt-1 pl-1 leading-tight">
+            Must be a valid email (e.g. user@example.com)
           </div>
         </div>
+      </div>
 
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700">Password</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-              <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-            </span>
-            <input type="password" name="password" placeholder="Enter your password" id="passwordField"
-              class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3" onclick="togglePassword()">
-              <i data-lucide="eye" class="w-5 h-5 text-gray-400"></i>
-            </button>
-          </div>
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Password</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
+          </span>
+          <input type="password" name="password" placeholder="Enter your password" id="passwordField"
+            class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3" onclick="togglePassword()">
+            <i data-lucide="eye" class="w-5 h-5 text-gray-400"></i>
+          </button>
         </div>
+      </div>
 
-        <button type="submit"
-          class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">Create
-          Account
-        </button>
-      </form>
+      <button type="submit"
+        class="w-full bg-gradient-to-r from-primary-light to-primary hover:from-primary hover:to-primary-dark text-white py-3.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
+        Create Account
+      </button>
+    </form>
 
-      <div class="mt-6 text-center text-sm text-gray-600">
-        Already have an account? <a href="{{ url_for('auth.login_page') }}" class="text-blue-600 hover:underline">Sign
-          in</a>
+    <div class="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-600">
+      Already have an account? <a href="{{ url_for('auth.login_page') }}"
+        class="text-primary hover:text-primary-dark hover:underline">Sign in</a>
+    </div>
+
+    <!-- OAuth Providers -->
+    <div class="mt-8">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-200"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">Or sign up with</span>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-2 gap-3">
+        <a href="{{ url_for('oauth.login', provider='google') }}"
+          class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          <i data-lucide="mail" class="w-5 h-5 mr-2 text-red-500"></i>
+          Google
+        </a>
+        <a href="{{ url_for('oauth.login', provider='github') }}"
+          class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          <i data-lucide="github" class="w-5 h-5 mr-2"></i>
+          GitHub
+        </a>
       </div>
     </div>
   </div>
-
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script>
-    lucide.createIcons();
-
-    function togglePassword() {
-      const passwordField = document.getElementById('passwordField');
-      const eyeIcon = event.currentTarget.querySelector('[data-lucide]');
-      if (passwordField && eyeIcon) {
-        if (passwordField.type === 'password') {
-          passwordField.type = 'text';
-          eyeIcon.setAttribute('data-lucide', 'eye-off');
-        } else {
-          passwordField.type = 'password';
-          eyeIcon.setAttribute('data-lucide', 'eye');
-        }
-        lucide.createIcons();
-      }
-    }
-  </script>
-</body>
-
-</html>
+</div>
+{% endblock %}
