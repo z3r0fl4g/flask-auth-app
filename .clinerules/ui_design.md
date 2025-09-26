@@ -4,9 +4,9 @@
 
 ### Primary Palette
 
-- Primary: #4F46E5 (Indigo-600)
-- Primary Dark: #4338CA (Indigo-700)
-- Primary Light: #6366F1 (Indigo-500)
+- Primary: #e11d48 (Rose-600)
+- Primary Dark: #be123c (Indigo-700)
+- Primary Light: #f43f5e (Indigo-500)
 - Accent: #EC4899 (Pink-500)
 
 ### Neutral Palette
