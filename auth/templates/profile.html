@@ -18,9 +18,11 @@
           </div>
           {% endif %}
           <div class="text-left">
-            <h1 class="text-3xl font-bold text-gray-800">Welcome to your profile, {{ current_user.fullname or current_user.username or current_user.email.split('@')[0] }}!</h1>
-            <p class="text-gray-600 mt-2">We're glad to have you here. Your account is fully verified and secure.</p>
-            <p class="text-sm text-gray-500 mt-1">Authenticated via {{ current_user.provider|capitalize }}</p>
+            <h1 class="text-3xl font-bold text-gray-800">Hey {{ current_user.fullname or
+              current_user.username or current_user.email.split('@')[0] }}, your Tikepam hub is live.</h1>
+            <p class="text-gray-600 mt-2">Manage tickets, track events, and keep your account locked with trusted
+              security.</p>
+            <p class="text-sm text-gray-500 mt-1">Signed in via {{ current_user.provider|capitalize }}</p>
           </div>
         </div>
       </div>
@@ -30,26 +32,26 @@
   <!-- Profile Information Section -->
   <section class="mb-16">
     <div class="max-w-5xl mx-auto">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Your Account Information</h2>
-      
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Account snapshot</h2>
+
       <div class="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
         <div class="p-6">
           <div class="grid md:grid-cols-2 gap-6">
             <!-- Email -->
             <div>
-              <h3 class="text-sm font-medium text-gray-500">Email Address</h3>
+              <h3 class="text-sm font-medium text-gray-500">Email address</h3>
               <p class="mt-1 text-lg text-gray-800">{{ current_user.email }}</p>
             </div>
-            
+
             <!-- Account Type -->
             <div>
-              <h3 class="text-sm font-medium text-gray-500">Account Type</h3>
-              <p class="mt-1 text-lg text-gray-800">{{ current_user.provider|capitalize }} Account</p>
+              <h3 class="text-sm font-medium text-gray-500">Account type</h3>
+              <p class="mt-1 text-lg text-gray-800">{{ current_user.provider|capitalize }} account</p>
             </div>
-            
+
             <!-- 2FA Status -->
             <div>
-              <h3 class="text-sm font-medium text-gray-500">Two-Factor Authentication</h3>
+              <h3 class="text-sm font-medium text-gray-500">Two-factor authentication</h3>
               <p class="mt-1 text-lg text-gray-800">
                 {% if current_user.twofa_enabled %}
                 <span class="text-green-600 flex items-center">
@@ -57,31 +59,86 @@
                 </span>
                 {% else %}
                 <span class="text-amber-600 flex items-center">
-                  <i data-lucide="alert-circle" class="w-5 h-5 mr-1"></i> Not Enabled
+                  <i data-lucide="alert-circle" class="w-5 h-5 mr-1"></i> Not enabled
                 </span>
                 {% endif %}
               </p>
             </div>
-            
+
             <!-- Account Created -->
             <div>
-              <h3 class="text-sm font-medium text-gray-500">Member Since</h3>
+              <h3 class="text-sm font-medium text-gray-500">Member since</h3>
               <p class="mt-1 text-lg text-gray-800">April 2025</p>
             </div>
           </div>
         </div>
-        
+
         <div class="bg-gray-50 px-6 py-4 border-t border-gray-100">
           <div class="flex flex-wrap gap-3">
-            <a href="{{ url_for('twofa.settings') }}" class="inline-flex items-center text-sm text-primary hover:text-primary-dark">
-              <i data-lucide="shield" class="w-4 h-4 mr-1"></i> Security Settings
+            <a href="{{ url_for('twofa.settings') }}"
+              class="inline-flex items-center text-sm text-primary hover:text-primary-dark">
+              <i data-lucide="shield" class="w-4 h-4 mr-1"></i> Security center
             </a>
             <a href="#" class="inline-flex items-center text-sm text-primary hover:text-primary-dark">
-              <i data-lucide="settings" class="w-4 h-4 mr-1"></i> Account Settings
+              <i data-lucide="settings" class="w-4 h-4 mr-1"></i> Account controls
             </a>
-            <a href="{{ url_for('auth.logout') }}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
-              <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Sign Out
+            <a href="{{ url_for('auth.logout') }}"
+              class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+              <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Log out
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Appointment Booking Section -->
+  <section class="mb-16">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Schedule a Tikepam check-in</h2>
+
+      <div class="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
+        <div class="p-8">
+          <div class="text-center">
+            <div class="w-20 h-20 bg-primary-light/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i data-lucide="calendar" class="w-10 h-10 text-primary"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Chat with a success partner</h3>
+            <p class="text-gray-600 mb-6 max-w-md mx-auto">
+              Pick a time to review ticketing, payouts, or growth plans. We’ll lock it in and email the details.
+            </p>
+
+            <!-- Appointment Booking Button -->
+            <button id="bookAppointmentBtn"
+              class="btn-primary mx-auto"
+              onclick="bookAppointment()">
+              <i data-lucide="calendar-plus" class="w-5 h-5 mr-2"></i>
+              Book a call
+            </button>
+
+            <!-- Loading State (Hidden by default) -->
+            <div id="appointmentLoading" class="hidden mt-4">
+              <div class="flex items-center justify-center text-primary">
+                <i data-lucide="loader" class="w-5 h-5 mr-2 animate-spin"></i>
+                <span>Locking in your slot...</span>
+              </div>
+            </div>
+
+            <!-- Success Message (Hidden by default) -->
+            <div id="appointmentSuccess" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-center text-green-700">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                <span>Call confirmed. Look out for a confirmation email with the details.</span>
+              </div>
+            </div>
+
+            <!-- Error Message (Hidden by default) -->
+            <div id="appointmentError" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div class="flex items-center text-red-700">
+                <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i>
+                <span id="errorMessage">Something interrupted the booking. Please try again.</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -91,15 +148,15 @@
   <!-- Recent Activity Section (Placeholder) -->
   <section>
     <div class="max-w-5xl mx-auto">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Recent Activity</h2>
-      
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Recent activity</h2>
+
       <div class="bg-white rounded-lg shadow-md border border-gray-100 p-6">
         <div class="text-center py-8">
           <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <i data-lucide="clock" class="w-8 h-8 text-gray-400"></i>
           </div>
-          <h3 class="text-lg font-medium text-gray-800 mb-2">No recent activity</h3>
-          <p class="text-gray-600">Your account activity will appear here</p>
+          <h3 class="text-lg font-medium text-gray-800 mb-2">No recent activity yet</h3>
+          <p class="text-gray-600">Ticket purchases, check-ins, and payouts will appear here.</p>
         </div>
       </div>
     </div>

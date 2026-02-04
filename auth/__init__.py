@@ -22,16 +22,28 @@ def verification_required(f):
     return decorated_function
 
 def init_auth(app):
-    # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///auth.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+    """
+    Initialize authentication system with database and login manager.
+
+    Database configuration is now handled in config.py and loaded in app.py.
+    This allows for environment-based configuration (dev/prod).
+    """
+    # Initialize database with app
+    # Note: SQLALCHEMY_DATABASE_URI and other DB settings come from config
     db.init_app(app)
+
+    # Initialize login manager
     login_manager.init_app(app)
+    login_manager.login_view = 'auth.login_page'  # Redirect to login page if not authenticated
+
+    # Initialize migrations
     migrate.init_app(app, db)
-        
+
     from .models import User
-    
+
     @login_manager.user_loader
     def load_user(user_id):
+        """Load user by ID for Flask-Login."""
         return User.query.get(int(user_id))
+
+    app.logger.info(f"Auth system initialized with database: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not configured')[:50]}...")

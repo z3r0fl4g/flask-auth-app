@@ -27,6 +27,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required
 from .. import verification_required
 import random
 from werkzeug.security import generate_password_hash
+import re
 
 from flask_limiter.util import get_remote_address
 from itsdangerous import URLSafeTimedSerializer
@@ -41,6 +42,29 @@ auth_bp = Blueprint('auth', __name__)
 # Configure Flask-Login (initialized in __init__.py)
 from .. import login_manager
 login_manager.login_view = 'auth.login_page'
+
+email_regex = re.compile(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+# Baseline policy (8+ chars, letter + number). Adjust to strong_password_regex when needed.
+password_regex = re.compile(r'^(?=.*[A-Za-z])(?=.*\d).{8,}$')
+strong_password_regex = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$')
+
+
+def normalize_email(value: str) -> str:
+    if not value:
+        return ''
+    value = value.strip()
+    if '@' in value:
+        local, domain = value.split('@', 1)
+        return f"{local}@{domain.lower()}"
+    return value
+
+
+def is_valid_email(value: str) -> bool:
+    return bool(value and email_regex.match(value))
+
+
+def is_secure_password(value: str) -> bool:
+    return bool(value and password_regex.match(value))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login_page():
@@ -68,8 +92,17 @@ def login_page():
     if request.method == 'GET':
         session.pop('_flashes', None)
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        raw_email = request.form.get('email', '')
+        email = normalize_email(raw_email)
+        password = request.form.get('password', '')
+
+        if not is_valid_email(email):
+            flash('Enter a valid email address.', 'error')
+            return render_template('login.html')
+        if not is_secure_password(password):
+            flash('Password must be at least 8 characters and include a letter and number.', 'error')
+            return render_template('login.html')
+
         user = User.query.filter_by(email=email).first()
         
         if not user:
@@ -77,24 +110,28 @@ def login_page():
         elif not user.check_password(password):
             flash('Incorrect password for this account', 'error')
         else:
-            # Store next URL in session
-            session['next_url'] = request.args.get('next') or url_for('auth.profile')
+            next_url = request.args.get('next') or url_for('auth.profile')
             
-            # Check if 2FA is enabled
             if user.twofa_enabled:
+                # Store user ID in session for verification flow
+                session['verification_user_id'] = user.id
+                session['next_url'] = next_url
                 session['requires_2fa'] = True
-            else:
-                session['requires_2fa'] = False  # Mark as non-2FA verification
+                
+                # Import send_verification_email here to avoid circular imports
+                from .twofa import send_verification_email
+                # Send verification email with code
+                send_verification_email(user)
+                
+                return redirect(url_for('twofa.verify'))
             
-            # Store user ID in session for verification flow
-            session['verification_user_id'] = user.id
-            
-            # Import send_verification_email here to avoid circular imports
-            from .twofa import send_verification_email
-            # Send verification email with code
-            send_verification_email(user)
-            
-            return redirect(url_for('twofa.verify'))
+            # No 2FA required; log user in immediately
+            login_user(user)
+            user.twofa_verified = True
+            db.session.commit()
+            session.pop('verification_user_id', None)
+            session.pop('requires_2fa', None)
+            return redirect(next_url)
     return render_template('login.html')
 
 @auth_bp.route('/signup')
@@ -154,8 +191,9 @@ def signup():
     """
     # Get form data
     fullname = request.form.get('fullname')
-    email = request.form.get('email')
-    password = request.form.get('password')
+    raw_email = request.form.get('email', '')
+    email = normalize_email(raw_email)
+    password = request.form.get('password', '')
 
     # Validate inputs
     if not email or not password:
@@ -163,6 +201,14 @@ def signup():
         if not email: missing.append("email")
         if not password: missing.append("password")
         flash(f'Missing required fields: {", ".join(missing)}', 'error')
+        return redirect(url_for('auth.signup_page'))
+
+    if not is_valid_email(email):
+        flash('Enter a valid email address.', 'error')
+        return redirect(url_for('auth.signup_page'))
+
+    if not is_secure_password(password):
+        flash('Password must be at least 8 characters and include a letter and number.', 'error')
         return redirect(url_for('auth.signup_page'))
 
     # Check if email exists

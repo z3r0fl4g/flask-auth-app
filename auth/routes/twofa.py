@@ -9,20 +9,16 @@ This module handles all 2FA-related functionality including:
 """
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, session
-from flask_login import login_required, current_user, logout_user, login_user
+from flask_login import login_required, current_user, login_user
 from flask_mail import Message
 from datetime import datetime, timedelta
 import secrets
 import bcrypt
 from ..models import db, User
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from extensions import limiter
 
 # Create 2FA blueprint
-twofa_bp = Blueprint('twofa', __name__, url_prefix='/2fa')
-
-# Get limiter from app
-limiter = Limiter(key_func=get_remote_address)
+twofa_bp = Blueprint('twofa', __name__)
 
 @twofa_bp.route('/verify', methods=['GET', 'POST'])
 def verify():
@@ -70,7 +66,6 @@ def verify():
     return render_template('twofa_verify.html')
 
 @twofa_bp.route('/resend-code')
-@login_required
 @limiter.limit("3 per hour")  # Prevent brute force attacks
 def resend_code():
     """
@@ -79,9 +74,20 @@ def resend_code():
     Generates a new verification code and sends it to the user's
     email address. Limited to 3 requests per hour to prevent abuse.
     """
-    # Always allow resending code regardless of verification status
-        
-    send_verification_email(current_user)
+    user = None
+    if 'verification_user_id' in session:
+        user = User.query.get(session['verification_user_id'])
+    elif current_user.is_authenticated:
+        user = current_user
+    
+    if not user:
+        flash('Please log in to request a new verification code', 'error')
+        return redirect(url_for('auth.login_page'))
+
+    send_verification_email(user)
+    if 'verification_user_id' not in session:
+        session['verification_user_id'] = user.id
+
     flash('New verification code sent to your email', 'info')
     return redirect(url_for('twofa.verify'))
 
@@ -106,6 +112,9 @@ def settings():
             # Set as not verified and send verification email
             current_user.twofa_verified = False
             send_verification_email(current_user)
+            session['verification_user_id'] = current_user.id
+            session['requires_2fa'] = True
+            session.setdefault('next_url', url_for('auth.profile'))
             flash('Two-factor authentication enabled. Please verify your email address.', 'success')
             db.session.commit()
             

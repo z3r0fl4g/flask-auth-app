@@ -1,89 +1,246 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-160px)] flex items-center justify-center px-4">
-  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200 mx-auto">
-    <div class="text-center mb-8">
-      <div class="mx-auto w-12 h-12 bg-primary-light/20 rounded-full flex items-center justify-center mb-4">
-        <i data-lucide="user-plus" class="text-primary w-6 h-6"></i>
+<!-- Applied sign-up styling per ui_design.md (Sections: Forms, Buttons, Layout & Imagery) -->
+<section class="relative">
+  <div
+    class="absolute inset-x-0 -top-32 h-56 max-w-3xl mx-auto bg-gradient-to-r from-[#ffe59d]/50 via-white to-[#d7e6ff]/50 blur-3xl -z-10 pointer-events-none">
+  </div>
+  <div class="max-w-6xl mx-auto px-12 sm:px-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
+      <div class="space-y-6 text-gray-600">
+        <h2 class="text-3xl font-semibold text-gray-900">One account. Every Haitian event.</h2>
+        <p>Join Tikepam to grab tickets instantly, host Kompa nights, track rara parades, and keep every Haitian event
+          organized without losing the vibe.</p>
+        <ul class="space-y-3 text-sm">
+          <li class="flex items-start gap-3"><i data-lucide="check" class="h-4 w-4 text-[#8338ec]"></i> Fast email login
+            and social sign-in so checkout stays blazing.</li>
+          <li class="flex items-start gap-3"><i data-lucide="check" class="h-4 w-4 text-[#8338ec]"></i> Optional 2FA to
+            keep your Tikepam account locked wherever you travel.</li>
+          <li class="flex items-start gap-3"><i data-lucide="check" class="h-4 w-4 text-[#8338ec]"></i> Personal
+            dashboard for saved tickets, hosted events, and guest lists.</li>
+        </ul>
       </div>
-      <h1 class="text-2xl font-bold text-gray-800 mb-1">Create your account</h1>
-    </div>
 
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div class="px-4 py-3 bg-red-100 text-sm text-red-700 rounded mb-6">
-      {% for message in messages %}
-      {{ message }}
-      {% endfor %}
-    </div>
-    {% endif %}
-    {% endwith %}
+      <div class="rounded-3xl border border-gray-200 bg-white/90 p-8 shadow-xl shadow-gray-200/60">
+        <div class="text-center mb-8">
+          <h1 class="text-2xl font-semibold text-gray-900">Create your Tikepam account</h1>
+          <p class="text-sm text-gray-500 mt-2">Secure your tickets, host events, and keep Haitian culture one tap
+            away.</p>
+        </div>
 
-    <form method="POST" action="{{ url_for('auth.signup') }}" class="space-y-6">
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">Email</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-            <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
-          </span>
-          <input type="email" name="email" placeholder="Enter your email" id="emailField"
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-          <div id="emailError" class="hidden text-red-500 text-[10px] mt-1 pl-1 leading-tight">
-            Must be a valid email (e.g. user@example.com)
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          {% for message in messages %}
+          {{ message }}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form id="signupForm" method="POST" action="{{ url_for('auth.signup') }}" class="space-y-4" novalidate>
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">Email address</label>
+            <div class="relative flex items-center">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <i data-lucide="mail" class="h-4 w-4"></i>
+              </span>
+              <input type="email" name="email" id="signupEmailField" placeholder="name@email.com" required
+                aria-invalid="false" aria-describedby="signupEmailError" autocomplete="email" inputmode="email"
+                class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-none focus:ring-2 focus:ring-[#8338ec]/20">
+            </div>
+            <p id="signupEmailError"
+              class="text-[11px] text-rose-500 min-h-[14px] opacity-0 transition-opacity duration-200"
+              aria-live="polite" aria-hidden="true">Use a valid email address.</p>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-sm font-medium text-gray-700">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <i data-lucide="lock" class="h-4 w-4"></i>
+              </span>
+              <input type="password" name="password" id="signupPasswordField" placeholder="Create a secure password"
+                required aria-invalid="false" aria-describedby="signupPasswordError" autocomplete="new-password"
+                class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-12 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-none focus:ring-2 focus:ring-[#8338ec]/20">
+              <button type="button" aria-label="Show password" aria-pressed="false" data-target="signupPasswordField"
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition"
+                onclick="togglePassword(event)">
+                <i data-lucide="eye" class="h-4 w-4"></i>
+              </button>
+            </div>
+            <p id="signupPasswordError"
+              class="text-xs text-rose-500 mt-2 min-h-[14px] opacity-0 transition-opacity duration-200"
+              aria-live="polite" aria-hidden="true">Use 8+ characters with letters and numbers.</p>
+          </div>
+
+          <button type="submit" class="btn-primary w-full justify-center" disabled aria-disabled="true">
+            Join Tikepam
+            <i data-lucide="arrow-right" class="h-4 w-4"></i>
+          </button>
+        </form>
+
+        <div class="mt-8 space-y-4">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-200"></div>
+            </div>
+            <div class="relative flex justify-center text-xs uppercase tracking-[0.35em] text-gray-400">
+              <span class="bg-white px-3">Or continue with</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <a href="{{ url_for('oauth.login', provider='google') }}"
+              class="flex items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm hover:border-[#8338ec]/40 transition">
+              <i data-lucide="mail" class="h-4 w-4 text-[#ff006e]"></i>
+              Google
+            </a>
+            <a href="{{ url_for('oauth.login', provider='github') }}"
+              class="flex items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm hover:border-[#8338ec]/40 transition">
+              <i data-lucide="github" class="h-4 w-4"></i>
+              GitHub
+            </a>
           </div>
         </div>
-      </div>
 
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">Password</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-          </span>
-          <input type="password" name="password" placeholder="Enter your password" id="passwordField"
-            class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-          <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3" onclick="togglePassword()">
-            <i data-lucide="eye" class="w-5 h-5 text-gray-400"></i>
-          </button>
-        </div>
-      </div>
-
-      <button type="submit"
-        class="w-full bg-gradient-to-r from-primary-light to-primary hover:from-primary hover:to-primary-dark text-white py-3.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
-        Create Account
-      </button>
-    </form>
-
-    <div class="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-600">
-      Already have an account? <a href="{{ url_for('auth.login_page') }}"
-        class="text-primary hover:text-primary-dark hover:underline">Sign in</a>
-    </div>
-
-    <!-- OAuth Providers -->
-    <div class="mt-8">
-      <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-200"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="px-2 bg-white text-gray-500">Or sign up with</span>
-        </div>
-      </div>
-
-      <div class="mt-6 grid grid-cols-2 gap-3">
-        <a href="{{ url_for('oauth.login', provider='google') }}"
-          class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-          <i data-lucide="mail" class="w-5 h-5 mr-2 text-red-500"></i>
-          Google
-        </a>
-        <a href="{{ url_for('oauth.login', provider='github') }}"
-          class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-          <i data-lucide="github" class="w-5 h-5 mr-2"></i>
-          GitHub
-        </a>
+        <p class="mt-8 text-center text-sm text-gray-600">
+          Already on Tikepam?
+          <a href="{{ url_for('auth.login_page') }}"
+            class="font-semibold text-[#8338ec] hover:text-[#6414d5] transition">Log in</a>
+        </p>
+        <p class="text-xs text-gray-500 text-center mt-4">By creating an account, you agree to our
+          <a href="/terms" class="font-semibold text-gray-700 hover:text-gray-700 transition">Terms</a> and
+          <a href="/privacy" class="font-semibold text-gray-700 hover:text-gray-700 transition">Privacy Policy</a>.
+        </p>
       </div>
     </div>
   </div>
-</div>
+</section>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('signupForm');
+    if (!form) {
+      return;
+    }
+    const emailInput = document.getElementById('signupEmailField');
+    const passwordInput = document.getElementById('signupPasswordField');
+    const emailError = document.getElementById('signupEmailError');
+    const passwordError = document.getElementById('signupPasswordError');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+    const strongPasswordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/; // future policy hook
+    let emailDirty = false;
+    let passwordDirty = false;
+    let attemptedSubmit = false;
+
+    const debounce = (fn, delay = 250) => {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(null, args), delay);
+      };
+    };
+
+    const normalizeEmailValue = () => {
+      const trimmed = emailInput.value.trim();
+      if (!trimmed) {
+        emailInput.value = '';
+        return '';
+      }
+      if (!trimmed.includes('@')) {
+        emailInput.value = trimmed;
+        return trimmed;
+      }
+      const [local, domain] = trimmed.split('@');
+      const normalized = `${local}@${domain.toLowerCase()}`;
+      emailInput.value = normalized;
+      return normalized;
+    };
+
+    const shouldShowError = (dirty, force, hasValue) => {
+      return attemptedSubmit || force;
+    };
+
+    const validateEmail = (force = false) => {
+      const value = normalizeEmailValue();
+      const hasValue = !!value;
+      const valid = hasValue && emailPattern.test(value);
+      const showError = shouldShowError(emailDirty, force, hasValue) && (!hasValue || !valid);
+      emailError.classList.toggle('opacity-0', !showError);
+      emailError.classList.toggle('opacity-100', showError);
+      emailError.setAttribute('aria-hidden', showError ? 'false' : 'true');
+      emailInput.setAttribute('aria-invalid', showError ? 'true' : 'false');
+      return valid;
+    };
+
+    const validatePassword = (force = false) => {
+      const value = passwordInput.value;
+      const hasValue = !!value;
+      const valid = hasValue && passwordPattern.test(value);
+      const showError = shouldShowError(passwordDirty, force, hasValue) && (!hasValue || !valid);
+      passwordError.classList.toggle('opacity-0', !showError);
+      passwordError.classList.toggle('opacity-100', showError);
+      passwordError.setAttribute('aria-hidden', showError ? 'false' : 'true');
+      passwordInput.setAttribute('aria-invalid', showError ? 'true' : 'false');
+      return valid;
+    };
+
+    const updateSubmitState = () => {
+      const ready = emailInput.value.trim() !== '' && passwordInput.value !== '';
+      submitButton.disabled = !ready;
+      submitButton.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    };
+
+    emailInput.addEventListener('input', debounce(() => {
+      if (emailInput.value.trim()) {
+        emailDirty = true;
+      }
+      validateEmail();
+      updateSubmitState();
+    }));
+    emailInput.addEventListener('blur', () => {
+      if (emailInput.value.trim()) {
+        emailDirty = true;
+      }
+      validateEmail(false);
+      updateSubmitState();
+    });
+
+    passwordInput.addEventListener('input', debounce(() => {
+      if (passwordInput.value) {
+        passwordDirty = true;
+      }
+      validatePassword();
+      updateSubmitState();
+    }));
+    passwordInput.addEventListener('blur', () => {
+      if (passwordInput.value) {
+        passwordDirty = true;
+      }
+      validatePassword(false);
+      updateSubmitState();
+    });
+
+    form.addEventListener('submit', (event) => {
+      attemptedSubmit = true;
+      const emailValid = validateEmail(true);
+      const passwordValid = validatePassword(true);
+      updateSubmitState();
+      if (!emailValid || !passwordValid) {
+        event.preventDefault();
+        if (!emailValid) {
+          emailInput.focus();
+        } else {
+          passwordInput.focus();
+        }
+        return;
+      }
+      submitButton.disabled = true;
+      submitButton.setAttribute('aria-disabled', 'true');
+      submitButton.setAttribute('aria-busy', 'true');
+    });
+  });
+</script>
 {% endblock %}

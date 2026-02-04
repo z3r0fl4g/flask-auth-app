@@ -59,11 +59,13 @@ class User(UserMixin, db.Model):
             
         Returns:
             bool: True if password matches hash, False otherwise
-            
+        
         Note:
             For OAuth users (empty password), always returns False
         """
         from werkzeug.security import check_password_hash
+        if not self.password:
+            return False
         return check_password_hash(self.password, password)
 
     @staticmethod

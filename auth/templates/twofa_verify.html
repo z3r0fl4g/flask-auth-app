@@ -1,58 +1,111 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-160px)] flex items-center justify-center px-4">
-  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200 mx-auto">
-    <div class="text-center mb-8">
-      <div class="mx-auto w-12 h-12 bg-primary-light/20 rounded-full flex items-center justify-center mb-4">
-        <i data-lucide="shield" class="text-primary w-6 h-6"></i>
+<!-- Applied verification styling per ui_design.md (Sections: Forms, Buttons, Layout & Imagery) -->
+<section class="relative min-h-[calc(100vh-160px)] flex items-center justify-center px-4 sm:px-6">
+  <div
+    class="absolute inset-x-0 -top-28 h-48 max-w-3xl mx-auto bg-gradient-to-r from-[#d7e6ff]/60 via-white to-[#ffe59d]/60 blur-3xl -z-10 pointer-events-none">
+  </div>
+  <div class="w-full max-w-xl">
+    <div class="rounded-3xl border border-gray-200 bg-white/90 p-6 sm:p-8 shadow-xl shadow-gray-200/60">
+      <div class="text-center mb-8">
+        <h1 class="mt-4 text-2xl font-semibold text-gray-900">Verify it’s you</h1>
+        <p class="text-sm text-gray-500">Enter the six-digit code we emailed to keep your account protected.</p>
       </div>
-      <h1 class="text-2xl font-bold text-gray-800 mb-1">Verify Your Identity</h1>
-      <p class="text-gray-500 mt-2">Enter the verification code sent to your email</p>
-    </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div
-      class="px-4 py-3 {% if category == 'danger' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %} rounded mb-6">
-      {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
-
-    <form method="POST" class="space-y-6">
-      {% if config.get('WTF_CSRF_ENABLED') %}
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="mb-6 rounded-2xl border {% if category == 'danger' %}border-rose-200 bg-rose-50 text-rose-600{% else %}border-emerald-200 bg-emerald-50 text-emerald-700{% endif %} px-4 py-3 text-sm">
+        {{ message }}
+      </div>
+      {% endfor %}
       {% endif %}
+      {% endwith %}
 
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700">
-          Verification Code
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-            <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
-          </span>
-          <input type="text" name="code" required
-            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="Enter code sent to your email">
+      <form id="otpForm" method="POST" class="space-y-6">
+        {% if config.get('WTF_CSRF_ENABLED') %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        <input type="hidden" id="verificationCode" name="code">
+
+        <div class="space-y-3">
+          <label class="text-sm font-medium text-gray-700">Verification code</label>
+          <div class="grid grid-cols-6 gap-2">
+            {% for slot in range(6) %}
+            <input type="text" maxlength="1" inputmode="numeric" data-index="{{ loop.index0 }}"
+              class="otp-input text-center rounded-2xl border border-gray-200 bg-white py-3 text-base font-semibold text-gray-800 shadow-sm focus:border-[#8338ec]/60 focus:outline-none focus:ring-2 focus:ring-[#8338ec]/20"
+              {% if loop.first %}autofocus{% endif %}>
+            {% endfor %}
+          </div>
+          <p class="text-xs text-gray-500">Code expires in <span class="font-semibold text-gray-700">08:54</span>. Keep this window open.</p>
+        </div>
+
+        <button type="submit"
+          class="btn-primary w-full justify-center">
+          Verify and continue
+          <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </button>
+      </form>
+
+      <div class="mt-8 flex flex-col gap-3 text-sm text-gray-600">
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-5 py-4">
+          <p class="font-semibold text-gray-700">Didn’t get the email?</p>
+          <p class="text-xs text-gray-500 mt-1">Peek at spam or request another secure code.</p>
+        </div>
+        <div class="text-center">
+          <span class="mr-1">Need a new code?</span>
+          <a href="{{ url_for('twofa.resend_code') }}" class="font-semibold text-[#8338ec] hover:text-[#6414d5] transition">
+            Resend verification
+          </a>
         </div>
       </div>
-
-      <button type="submit"
-        class="w-full bg-gradient-to-r from-primary-light to-primary hover:from-primary hover:to-primary-dark text-white py-3.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
-        Verify Code
-      </button>
-    </form>
-
-    <div class="mt-8 pt-6 border-t border-gray-100 text-center text-sm text-gray-600">
-      Didn't receive the code?
-      <a href="{{ url_for('twofa.resend_code') }}" class="text-primary hover:text-primary-dark hover:underline">
-        Resend Code
-      </a>
     </div>
   </div>
-</div>
+</section>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const inputs = Array.from(document.querySelectorAll('.otp-input'));
+    const hiddenInput = document.getElementById('verificationCode');
+    const form = document.getElementById('otpForm');
+    if (!inputs.length || !hiddenInput || !form) return;
+
+    const focusInput = (index) => {
+      if (index >= 0 && index < inputs.length) {
+        inputs[index].focus();
+        inputs[index].select();
+      }
+    };
+
+    inputs.forEach((input, idx) => {
+      input.addEventListener('input', (e) => {
+        const value = e.target.value.replace(/\D/g, '');
+        e.target.value = value.slice(0, 1);
+        if (value && idx < inputs.length - 1) {
+          focusInput(idx + 1);
+        }
+        updateHiddenValue();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+          focusInput(idx - 1);
+        }
+      });
+    });
+
+    function updateHiddenValue() {
+      const code = inputs.map(i => i.value).join('');
+      hiddenInput.value = code;
+    }
+
+    form.addEventListener('submit', (e) => {
+      updateHiddenValue();
+      if (hiddenInput.value.length !== inputs.length) {
+        e.preventDefault();
+        inputs.find(input => !input.value)?.focus();
+      }
+    });
+  });
+</script>
 {% endblock %}

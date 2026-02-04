@@ -1,0 +1,94 @@
+/* Import Tikepam fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-body;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-headline;
+  }
+}
+
+@layer components {
+  /* Primary button - pill shape with gradient */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-full;
+    @apply bg-gradient-to-br from-violet-500 to-violet-400;
+    @apply text-white font-semibold text-sm;
+    @apply shadow-lg transition-all duration-200;
+    box-shadow: 0 4px 6px -1px rgba(131, 56, 236, 0.3), 0 2px 4px -2px rgba(131, 56, 236, 0.3);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    @apply -translate-y-0.5;
+    box-shadow: 0 10px 15px -3px rgba(131, 56, 236, 0.4), 0 4px 6px -4px rgba(131, 56, 236, 0.4);
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
+  /* Secondary button - outline */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-full;
+    @apply border border-violet-500 text-violet-500 font-semibold text-sm;
+    @apply bg-white hover:bg-violet-500/10;
+    @apply transition-all duration-200;
+  }
+
+  /* Form inputs - rounded-2xl with focus states */
+  .input {
+    @apply w-full px-4 py-3 rounded-2xl border border-gray-200;
+    @apply bg-white text-gray-900 placeholder-gray-400;
+    @apply focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20;
+    @apply transition-all duration-200;
+  }
+
+  /* Card - soft shadows */
+  .card {
+    @apply rounded-2xl border border-gray-200 bg-white;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+  }
+}
+
+/* Ambient background glows (fixed position) */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.28;
+}
+
+.glow-rose {
+  background: radial-gradient(circle, rgba(255, 0, 110, 0.42) 0%, rgba(255, 0, 110, 0) 60%);
+}
+
+.glow-amber {
+  background: radial-gradient(circle, rgba(255, 190, 11, 0.42) 0%, rgba(255, 190, 11, 0) 60%);
+}
+
+.glow-orange {
+  background: radial-gradient(circle, rgba(251, 86, 7, 0.38) 0%, rgba(251, 86, 7, 0) 60%);
+}
+
+@media (max-width: 640px) {
+  .glow {
+    filter: blur(90px);
+    opacity: 0.24;
+  }
+}

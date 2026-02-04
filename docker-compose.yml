@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tikepam_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tikepam_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-tikepam_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tikepam_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tikepam_network
+
+  # Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: tikepam_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - tikepam_network
+
+  # Flask API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tikepam_api
+    command: gunicorn -c gunicorn.conf.py app:app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tikepam_user}:${POSTGRES_PASSWORD:-changeme_dev_password}@postgres:5432/${POSTGRES_DB:-tikepam_dev}
+      REDIS_URL: redis://redis:6379/0
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080,http://localhost:3000}
+
+      # Email configuration
+      MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-True}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-noreply@tikepam.com}
+
+      # OAuth credentials
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      INSTAGRAM_CLIENT_ID: ${INSTAGRAM_CLIENT_ID}
+      INSTAGRAM_CLIENT_SECRET: ${INSTAGRAM_CLIENT_SECRET}
+      TWITTER_CLIENT_ID: ${TWITTER_CLIENT_ID}
+      TWITTER_CLIENT_SECRET: ${TWITTER_CLIENT_SECRET}
+
+      # Twilio (optional)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./migrations:/app/migrations  # Persist migrations
+    networks:
+      - tikepam_network
+    restart: unless-stopped
+
+  # Celery Worker (background tasks)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tikepam_celery_worker
+    command: celery -A celery_app.celery worker --loglevel=info
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tikepam_user}:${POSTGRES_PASSWORD:-changeme_dev_password}@postgres:5432/${POSTGRES_DB:-tikepam_dev}
+      REDIS_URL: redis://redis:6379/0
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+
+      # Email configuration (for sending emails)
+      MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-True}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-noreply@tikepam.com}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - tikepam_network
+    restart: unless-stopped
+
+  # Celery Beat (scheduled tasks)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tikepam_celery_beat
+    command: celery -A celery_app.celery beat --loglevel=info
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tikepam_user}:${POSTGRES_PASSWORD:-changeme_dev_password}@postgres:5432/${POSTGRES_DB:-tikepam_dev}
+      REDIS_URL: redis://redis:6379/0
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - tikepam_network
+    restart: unless-stopped
+
+  # Optional: Flower (Celery monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tikepam_flower
+    command: celery -A celery_app.celery flower --port=5555
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - tikepam_network
+    restart: unless-stopped
+    profiles:
+      - monitoring  # Only start with: docker-compose --profile monitoring up
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tikepam_network:
+    driver: bridge
