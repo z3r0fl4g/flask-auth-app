@@ -246,9 +246,9 @@ const dropdownOpen = ref(false)
 const mobileMenuOpen = ref(false)
 const dropdownRef = ref(null)
 
-// Hide navigation on signup and 2FA verify pages
+// Hide navigation on auth pages
 const hideNav = computed(() => {
-  return ['login', 'signup', 'twofa-verify'].includes(route.name)
+  return ['login', 'signup', 'twofa-verify', 'sso-callback'].includes(route.name)
 })
 
 // User initial for avatar

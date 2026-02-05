@@ -1,105 +1,110 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useAuth, useUser, useClerk } from '@clerk/vue'
 import api from '@/services/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null)
+  // Clerk composables
+  const { isSignedIn, isLoaded: authLoaded } = useAuth()
+  const { user: clerkUser, isLoaded: userLoaded } = useUser()
+  const clerk = useClerk()
+
+  // Local state
+  const localUser = ref(null)
   const loading = ref(false)
   const error = ref(null)
 
-  const isAuthenticated = computed(() => !!user.value)
-  const requires2FA = computed(() => !user.value || !user.value.twofa_verified)
+  // Computed
+  const isAuthenticated = computed(() => isSignedIn.value)
+  const isLoaded = computed(() => authLoaded.value && userLoaded.value)
 
+  // Watch for sign-in changes to fetch local user
+  watch(isSignedIn, async (signedIn) => {
+    if (signedIn) {
+      await fetchLocalUser()
+    } else {
+      localUser.value = null
+    }
+  }, { immediate: true })
+
+  /**
+   * Fetch the local user from our backend.
+   * This syncs Clerk auth with our Supabase user data.
+   */
+  async function fetchLocalUser() {
+    if (!isSignedIn.value) return
+
+    loading.value = true
+    try {
+      const { data } = await api.get('/api/auth/me')
+      if (data.success) {
+        localUser.value = data.data.user
+      }
+    } catch (err) {
+      // User might not be synced yet (webhook delay)
+      console.warn('Could not fetch local user:', err)
+      localUser.value = null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Check session - for compatibility with existing code.
+   * With Clerk, this just triggers a local user fetch if signed in.
+   */
   async function checkSession() {
-    loading.value = true
-    try {
-      const { data } = await api.get('/api/auth/session')
-      if (data.data?.authenticated) {
-        user.value = data.data.user
-      } else {
-        user.value = null
-      }
-    } catch (err) {
-      user.value = null
-      error.value = err.message
-    } finally {
-      loading.value = false
+    if (isSignedIn.value) {
+      await fetchLocalUser()
     }
   }
 
-  async function login(email, password) {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.post('/api/auth/login', { email, password })
-      if (data.success) {
-        if (data.data.requires_2fa) {
-          return { success: true, requires2FA: true }
-        }
-        user.value = data.data.user
-        return { success: true, requires2FA: false }
-      }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Login failed'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function signup(email, password, fullname) {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.post('/api/auth/signup', { email, password, fullname })
-      if (data.success) {
-        return { success: true, requires2FA: data.data.requires_2fa }
-      }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Signup failed'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function verify2FA(code) {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.post('/api/2fa/verify', { code })
-      if (data.success) {
-        user.value = data.data.user
-        return { success: true }
-      }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Verification failed'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
+  /**
+   * Sign out using Clerk.
+   */
   async function logout() {
-    await api.post('/api/auth/logout')
-    user.value = null
+    loading.value = true
+    try {
+      await clerk.value.signOut()
+      localUser.value = null
+    } catch (err) {
+      error.value = 'Logout failed'
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
+  /**
+   * Clear any error messages.
+   */
   function clearError() {
     error.value = null
   }
 
+  /**
+   * Set an error message.
+   */
+  function setError(message) {
+    error.value = message
+  }
+
   return {
-    user,
+    // State
+    user: localUser,
+    clerkUser,
     loading,
     error,
+    isLoaded,
+
+    // Computed
     isAuthenticated,
-    requires2FA,
+
+    // Actions
     checkSession,
-    login,
-    signup,
-    verify2FA,
+    fetchLocalUser,
     logout,
-    clearError
+    clearError,
+    setError
   }
 })

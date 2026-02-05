@@ -5,10 +5,13 @@
         <!-- Header -->
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold text-headline">
-            Check your inbox
+            {{ isSignupMode ? 'Verify your email' : 'Two-factor authentication' }}
           </h1>
           <p class="mt-3 text-body">
-            We just sent a 6-digit verification code to your email. Enter it below to continue.
+            {{ isSignupMode
+              ? 'We just sent a 6-digit verification code to your email. Enter it below to continue.'
+              : 'Enter the verification code to complete sign-in.'
+            }}
           </p>
         </div>
 
@@ -36,7 +39,7 @@
         </button>
 
         <p class="mt-5 text-center text-xs text-muted">
-          This code expires in 15 minutes. Didn't get it?
+          This code expires in 10 minutes. Didn't get it?
           <button
             @click="resend"
             :disabled="resending"
@@ -51,20 +54,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '@/services/api'
-import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useSignIn, useSignUp } from '@clerk/vue'
 import OTPInput from '../components/OTPInput.vue'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const route = useRoute()
+const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn()
+const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp()
 
 const code = ref('')
 const loading = ref(false)
 const resending = ref(false)
 const error = ref(null)
 const otpInputRef = ref(null)
+
+// Determine if this is signup email verification or login 2FA
+const isSignupMode = computed(() => route.query.mode === 'signup')
 
 function handleComplete(value) {
   code.value = value
@@ -76,16 +83,50 @@ async function verify() {
 
   loading.value = true
   error.value = null
+
   try {
-    const { data } = await api.post('/api/2fa/verify', { code: code.value })
-    if (data.success) {
-      authStore.user = data.data.user
-      router.push('/profile')
+    if (isSignupMode.value) {
+      // Email verification for signup
+      if (!signUpLoaded.value) {
+        error.value = 'Authentication is loading. Please try again.'
+        return
+      }
+
+      const result = await signUp.value.attemptEmailAddressVerification({
+        code: code.value
+      })
+
+      if (result.status === 'complete') {
+        await setActiveSignUp.value({ session: result.createdSessionId })
+        router.push('/profile')
+      } else {
+        console.log('Verification result:', result)
+        error.value = 'Please complete the verification process.'
+      }
+    } else {
+      // 2FA for login
+      if (!signInLoaded.value) {
+        error.value = 'Authentication is loading. Please try again.'
+        return
+      }
+
+      const result = await signIn.value.attemptSecondFactor({
+        strategy: 'totp',
+        code: code.value
+      })
+
+      if (result.status === 'complete') {
+        await setActiveSignIn.value({ session: result.createdSessionId })
+        router.push('/profile')
+      } else {
+        console.log('2FA result:', result)
+        error.value = 'Please complete the verification process.'
+      }
     }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Invalid or expired code'
+    console.error('Verification error:', err)
+    error.value = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid or expired code'
     code.value = ''
-    // Reset OTP input on error
     if (otpInputRef.value) {
       otpInputRef.value.reset()
     }
@@ -97,12 +138,26 @@ async function verify() {
 async function resend() {
   resending.value = true
   error.value = null
+
   try {
-    const { data } = await api.post('/api/2fa/resend')
-    // Show success message
-    alert(data.message || 'New code sent!')
+    if (isSignupMode.value) {
+      // Resend signup verification email
+      if (!signUpLoaded.value) return
+      await signUp.value.prepareEmailAddressVerification({
+        strategy: 'email_code'
+      })
+    } else {
+      // For 2FA, this typically isn't resendable in the same way
+      // TOTP codes are generated on device, not sent
+      error.value = 'Please use your authenticator app to get a new code.'
+      resending.value = false
+      return
+    }
+    // Show success
+    alert('New code sent!')
   } catch (err) {
-    error.value = err.response?.data?.message || 'Failed to resend code'
+    console.error('Resend error:', err)
+    error.value = err.errors?.[0]?.message || 'Failed to resend code'
   } finally {
     resending.value = false
   }

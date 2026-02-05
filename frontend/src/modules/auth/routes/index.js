@@ -1,5 +1,5 @@
-// Auth module routes - mirrors backend auth/ module structure
-import { useAuthStore } from '../store/auth'
+// Auth module routes
+import { useAuth } from '@clerk/vue'
 
 // Auth views
 import LoginView from '../views/LoginView.vue'
@@ -10,17 +10,19 @@ import TwoFAVerifyView from '../views/TwoFAVerifyView.vue'
 import TwoFASettingsView from '../views/TwoFASettingsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import HomeView from '../views/HomeView.vue'
+import SSOCallbackView from '../views/SSOCallbackView.vue'
 
-// Navigation guards
+// Navigation guards using Clerk
 const requiresAuth = async (to, from, next) => {
-  const authStore = useAuthStore()
+  const { isSignedIn, isLoaded } = useAuth()
 
-  // Check session if not already loaded
-  if (!authStore.user && !authStore.loading) {
-    await authStore.checkSession()
+  // Wait for Clerk to load
+  if (!isLoaded.value) {
+    // Wait a bit and try again
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
-  if (!authStore.isAuthenticated) {
+  if (!isSignedIn.value) {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } else {
     next()
@@ -28,14 +30,14 @@ const requiresAuth = async (to, from, next) => {
 }
 
 const requiresGuest = async (to, from, next) => {
-  const authStore = useAuthStore()
+  const { isSignedIn, isLoaded } = useAuth()
 
-  // Check session if not already loaded
-  if (!authStore.user && !authStore.loading) {
-    await authStore.checkSession()
+  // Wait for Clerk to load
+  if (!isLoaded.value) {
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
-  if (authStore.isAuthenticated) {
+  if (isSignedIn.value) {
     next({ name: 'profile' })
   } else {
     next()
@@ -72,7 +74,15 @@ export const authRoutes = [
     meta: { title: 'Set New Password - Tikepam' }
   },
 
-  // 2FA routes
+  // SSO callback for OAuth redirects
+  {
+    path: '/sso-callback',
+    name: 'sso-callback',
+    component: SSOCallbackView,
+    meta: { title: 'Signing in...' }
+  },
+
+  // 2FA/Verification routes
   {
     path: '/2fa/verify',
     name: 'twofa-verify',

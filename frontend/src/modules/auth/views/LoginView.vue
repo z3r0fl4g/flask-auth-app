@@ -16,10 +16,10 @@
 
         <!-- Error Message -->
         <div
-          v-if="authStore.error"
+          v-if="error"
           class="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-sm text-rose-600"
         >
-          {{ authStore.error }}
+          {{ error }}
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
@@ -124,10 +124,10 @@
           <!-- Submit -->
           <button
             type="submit"
-            :disabled="authStore.loading || !isFormValid"
+            :disabled="loading || !isFormValid"
             class="btn-primary w-full justify-center"
           >
-            {{ authStore.loading ? "Signing in..." : "Sign in" }}
+            {{ loading ? "Signing in..." : "Sign in" }}
           </button>
         </form>
 
@@ -141,9 +141,10 @@
           </div>
         </div>
 
-        <!-- Google OAuth -->
-        <a
-          href="/auth/login/google"
+        <!-- Google OAuth via Clerk -->
+        <button
+          @click="handleGoogleLogin"
+          :disabled="loading"
           class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24">
@@ -165,7 +166,7 @@
             />
           </svg>
           Continue with Google
-        </a>
+        </button>
 
         <!-- Sign up link -->
         <p class="mt-5 text-center text-sm text-gray-500">
@@ -185,20 +186,22 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
+import { useSignIn } from "@clerk/vue";
 import { useFormValidation } from "../composables/useFormValidation";
 
 const router = useRouter();
-const authStore = useAuthStore();
+const { signIn, setActive, isLoaded } = useSignIn();
 const { validateEmail, validatePassword, createField } = useFormValidation();
 
 const emailField = createField("");
 const passwordField = createField("");
 const showPassword = ref(false);
 const attemptedSubmit = ref(false);
+const loading = ref(false);
+const error = ref(null);
 
 onMounted(() => {
-  authStore.clearError();
+  error.value = null;
 });
 
 const isFormValid = computed(() => {
@@ -212,7 +215,7 @@ function validateEmailField() {
   const result = validateEmail(
     emailField.value.value,
     emailField.dirty.value,
-    attemptedSubmit.value,
+    attemptedSubmit.value
   );
   emailField.error.value = result.showError ? result.errorMessage : null;
 }
@@ -222,7 +225,7 @@ function validatePasswordField() {
   const result = validatePassword(
     passwordField.value.value,
     passwordField.dirty.value,
-    attemptedSubmit.value,
+    attemptedSubmit.value
   );
   passwordField.error.value = result.showError ? result.errorMessage : null;
 }
@@ -236,18 +239,61 @@ async function handleLogin() {
     return;
   }
 
+  if (!isLoaded.value) {
+    error.value = "Authentication is loading. Please try again.";
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
   try {
-    const result = await authStore.login(
-      emailField.value.value,
-      passwordField.value.value,
-    );
-    if (result.requires2FA) {
+    const result = await signIn.value.create({
+      identifier: emailField.value.value,
+      password: passwordField.value.value,
+    });
+
+    if (result.status === "complete") {
+      await setActive.value({ session: result.createdSessionId });
+      router.push("/profile");
+    } else if (result.status === "needs_second_factor") {
+      // Store the sign-in attempt for 2FA verification
       router.push("/2fa/verify");
     } else {
-      router.push("/profile");
+      // Handle other statuses
+      console.log("Sign in status:", result.status);
+      error.value = "Please complete the sign-in process.";
     }
-  } catch (error) {
-    // Error handled in store
+  } catch (err) {
+    console.error("Login error:", err);
+    error.value =
+      err.errors?.[0]?.longMessage ||
+      err.errors?.[0]?.message ||
+      "Invalid email or password";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleGoogleLogin() {
+  if (!isLoaded.value) {
+    error.value = "Authentication is loading. Please try again.";
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    await signIn.value.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/profile",
+    });
+  } catch (err) {
+    console.error("Google login error:", err);
+    error.value = err.errors?.[0]?.message || "Google login failed";
+    loading.value = false;
   }
 }
 </script>

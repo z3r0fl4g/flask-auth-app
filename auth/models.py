@@ -1,113 +1,100 @@
 """
 User model representing application users.
 
-Handles both local and OAuth authentication with:
-- Core user attributes (username, email, password)
-- OAuth provider integration fields
-- Password hashing and verification
-- User creation/lookup methods
+Handles Clerk-authenticated users with:
+- Core user attributes (email, fullname)
+- Clerk ID for auth sync
+- Profile picture
 """
 
-from flask_login import UserMixin
 from . import db
 
-class User(UserMixin, db.Model):
+
+class User(db.Model):
     """
-    User database model with authentication capabilities.
-    
+    User database model synced from Clerk via webhooks.
+
     Attributes:
         id (int): Primary key
-        username (str): Unique username
+        clerk_id (str): Unique Clerk user ID (from webhook)
         email (str): Unique email address
         fullname (str): User's full name
-        password (str): Hashed password (empty for OAuth users)
-        provider (str): Auth provider ('local' or OAuth service name)
-        provider_id (str): Unique ID from OAuth provider
         profile_pic (str): URL to user's profile picture
-        twofa_enabled (bool): Whether 2FA is enabled for this user
-        twofa_method (str): 2FA method (email, app, etc.)
-        twofa_secret (str): Secret key for 2FA (for authenticator apps)
-        twofa_code_hash (str): Hash of current verification code
-        twofa_code_expires (datetime): Expiration time of verification code
-        twofa_verified (bool): Whether user has completed 2FA verification
+        created_at (datetime): When the user was created
+        updated_at (datetime): When the user was last updated
     """
     __tablename__ = 'users'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True)
-    email = db.Column(db.String(120), unique=True)
+    clerk_id = db.Column(db.String(255), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     fullname = db.Column(db.String(120))
-    password = db.Column(db.String(128))
-    provider = db.Column(db.String(20), default='local')
-    provider_id = db.Column(db.String(120))
-    profile_pic = db.Column(db.String(500), nullable=True)  # URL to profile picture
-    
-    # Two-factor authentication fields
-    twofa_enabled = db.Column(db.Boolean, default=False)
-    twofa_method = db.Column(db.String(10), nullable=True)
-    twofa_secret = db.Column(db.String(128), nullable=True)
-    twofa_code_hash = db.Column(db.String(128), nullable=True)
-    twofa_code_expires = db.Column(db.DateTime, nullable=True)
-    twofa_verified = db.Column(db.Boolean, default=True)  # Default True for backward compatibility
-    
-    def check_password(self, password):
-        """
-        Verify password against stored hash.
-        
-        Args:
-            password (str): Plaintext password to verify
-            
-        Returns:
-            bool: True if password matches hash, False otherwise
-        
-        Note:
-            For OAuth users (empty password), always returns False
-        """
-        from werkzeug.security import check_password_hash
-        if not self.password:
-            return False
-        return check_password_hash(self.password, password)
+    profile_pic = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     @staticmethod
-    def get_or_create(provider, user_info):
+    def get_by_clerk_id(clerk_id):
+        """Find user by Clerk ID."""
+        return User.query.filter_by(clerk_id=clerk_id).first()
+
+    @staticmethod
+    def get_or_create_from_clerk(clerk_user_data):
         """
-        Find or create user based on OAuth provider data.
-        
+        Find or create user based on Clerk webhook data.
+
         Args:
-            provider (str): OAuth provider name (e.g. 'google')
-            user_info (dict): User data from OAuth provider
-            
+            clerk_user_data (dict): User data from Clerk webhook
+
         Returns:
             User: Existing or newly created user instance
-            
-        Handles:
-            - User lookup by provider ID
-            - New user creation with OAuth data
-            - Automatic commit of new users
         """
-        # Check if user exists
-        user = User.query.filter_by(
-            provider=provider,
-            provider_id=user_info.get('sub') or user_info.get('id')
-        ).first()
-        
+        clerk_id = clerk_user_data.get('id')
+        user = User.query.filter_by(clerk_id=clerk_id).first()
+
         if not user:
-            # Create new user
-            user = User(
-                username=user_info.get('email'),  # Use email as username for OAuth users
-                email=user_info.get('email'),
-                fullname=user_info.get('name'),
-                password='',  # OAuth users don't need password
-                provider=provider,
-                provider_id=user_info.get('sub') or user_info.get('id'),
-                twofa_verified=True  # New OAuth users don't need 2FA verification initially
+            # Extract email from Clerk's email_addresses array
+            email_addresses = clerk_user_data.get('email_addresses', [])
+            primary_email = next(
+                (e['email_address'] for e in email_addresses if e.get('id') == clerk_user_data.get('primary_email_address_id')),
+                email_addresses[0]['email_address'] if email_addresses else None
             )
-            
-            # Add profile picture if available
-            if user_info.get('picture'):
-                user.profile_pic = user_info.get('picture')
-                
+
+            user = User(
+                clerk_id=clerk_id,
+                email=primary_email,
+                fullname=f"{clerk_user_data.get('first_name', '')} {clerk_user_data.get('last_name', '')}".strip(),
+                profile_pic=clerk_user_data.get('image_url')
+            )
             db.session.add(user)
             db.session.commit()
-            
+
         return user
+
+    def update_from_clerk(self, clerk_user_data):
+        """
+        Update user fields from Clerk webhook data.
+
+        Args:
+            clerk_user_data (dict): User data from Clerk webhook
+        """
+        email_addresses = clerk_user_data.get('email_addresses', [])
+        primary_email = next(
+            (e['email_address'] for e in email_addresses if e.get('id') == clerk_user_data.get('primary_email_address_id')),
+            email_addresses[0]['email_address'] if email_addresses else self.email
+        )
+
+        self.email = primary_email
+        self.fullname = f"{clerk_user_data.get('first_name', '')} {clerk_user_data.get('last_name', '')}".strip()
+        self.profile_pic = clerk_user_data.get('image_url')
+        db.session.commit()
+
+    def to_dict(self):
+        """Return user as dictionary for API responses."""
+        return {
+            'id': self.id,
+            'clerk_id': self.clerk_id,
+            'email': self.email,
+            'fullname': self.fullname,
+            'profile_pic': self.profile_pic
+        }

@@ -14,5 +14,17 @@
 </template>
 
 <script setup>
+import { watchEffect } from 'vue'
+import { useAuth } from '@clerk/vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import { setClerkTokenGetter } from '@/services/api'
+
+// Set up Clerk token getter for API requests
+const { getToken, isLoaded } = useAuth()
+
+watchEffect(() => {
+  if (isLoaded.value) {
+    setClerkTokenGetter(() => getToken.value())
+  }
+})
 </script>

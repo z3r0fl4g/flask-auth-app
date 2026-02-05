@@ -17,10 +17,10 @@
 
         <!-- Error Message -->
         <div
-          v-if="authStore.error"
+          v-if="error"
           class="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-sm text-rose-600"
         >
-          {{ authStore.error }}
+          {{ error }}
         </div>
 
         <form @submit.prevent="handleSignup" class="space-y-4">
@@ -143,10 +143,10 @@
           <!-- Submit -->
           <button
             type="submit"
-            :disabled="authStore.loading || !isFormValid"
+            :disabled="loading || !isFormValid"
             class="btn-primary w-full justify-center"
           >
-            {{ authStore.loading ? "Creating account..." : "Create account" }}
+            {{ loading ? "Creating account..." : "Create account" }}
           </button>
         </form>
 
@@ -160,9 +160,10 @@
           </div>
         </div>
 
-        <!-- Google OAuth -->
-        <a
-          href="/auth/login/google"
+        <!-- Google OAuth via Clerk -->
+        <button
+          @click="handleGoogleSignup"
+          :disabled="loading"
           class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24">
@@ -184,7 +185,7 @@
             />
           </svg>
           Continue with Google
-        </a>
+        </button>
 
         <!-- Login link -->
         <p class="mt-5 text-center text-sm text-gray-500">
@@ -294,12 +295,11 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
+import { useSignUp } from "@clerk/vue";
 import { useFormValidation } from "../composables/useFormValidation";
-import OAuth2Buttons from "../components/OAuth2Buttons.vue";
 
 const router = useRouter();
-const authStore = useAuthStore();
+const { signUp, setActive, isLoaded } = useSignUp();
 const { validateEmail, validatePassword, createField } = useFormValidation();
 
 const fullnameField = createField("");
@@ -307,10 +307,11 @@ const emailField = createField("");
 const passwordField = createField("");
 const showPassword = ref(false);
 const attemptedSubmit = ref(false);
+const loading = ref(false);
+const error = ref(null);
 
-// Clear any existing errors when the page loads
 onMounted(() => {
-  authStore.clearError();
+  error.value = null;
 });
 
 const isFormValid = computed(() => {
@@ -326,7 +327,7 @@ function validateEmailField() {
   const result = validateEmail(
     emailField.value.value,
     emailField.dirty.value,
-    attemptedSubmit.value,
+    attemptedSubmit.value
   );
   emailField.error.value = result.showError ? result.errorMessage : null;
 }
@@ -336,7 +337,7 @@ function validatePasswordField() {
   const result = validatePassword(
     passwordField.value.value,
     passwordField.dirty.value,
-    attemptedSubmit.value,
+    attemptedSubmit.value
   );
   passwordField.error.value = result.showError ? result.errorMessage : null;
 }
@@ -350,19 +351,75 @@ async function handleSignup() {
     return;
   }
 
+  if (!isLoaded.value) {
+    error.value = "Authentication is loading. Please try again.";
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
   try {
-    const result = await authStore.signup(
-      emailField.value.value,
-      passwordField.value.value,
-      fullnameField.value.value,
-    );
-    if (result.requires2FA) {
-      router.push("/2fa/verify");
-    } else {
+    // Split fullname into first and last name
+    const nameParts = fullnameField.value.value.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    // Create the user with Clerk
+    const result = await signUp.value.create({
+      emailAddress: emailField.value.value,
+      password: passwordField.value.value,
+      firstName,
+      lastName,
+    });
+
+    if (result.status === "complete") {
+      // User created and verified (if no email verification required)
+      await setActive.value({ session: result.createdSessionId });
       router.push("/profile");
+    } else if (
+      result.status === "missing_requirements" &&
+      result.unverifiedFields?.includes("email_address")
+    ) {
+      // Email verification required - prepare and send the code
+      await signUp.value.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      router.push("/2fa/verify?mode=signup");
+    } else {
+      console.log("Sign up status:", result.status, result);
+      error.value = "Please complete the sign-up process.";
     }
-  } catch (error) {
-    // Error handled in store
+  } catch (err) {
+    console.error("Signup error:", err);
+    error.value =
+      err.errors?.[0]?.longMessage ||
+      err.errors?.[0]?.message ||
+      "Signup failed. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleGoogleSignup() {
+  if (!isLoaded.value) {
+    error.value = "Authentication is loading. Please try again.";
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    await signUp.value.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/profile",
+    });
+  } catch (err) {
+    console.error("Google signup error:", err);
+    error.value = err.errors?.[0]?.message || "Google signup failed";
+    loading.value = false;
   }
 }
 </script>
