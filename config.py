@@ -39,6 +39,9 @@ class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
 
+    # Email - Log to console in development (no SMTP needed)
+    MAIL_SUPPRESS_SEND = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
+
     # Database - Supabase PostgreSQL (or local SQLite fallback)
     SQLALCHEMY_DATABASE_URI = os.getenv(
         'DATABASE_URL',

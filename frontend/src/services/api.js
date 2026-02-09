@@ -43,8 +43,8 @@ api.interceptors.response.use(
   error => {
     if (error.response?.status === 401) {
       const url = error.config?.url || ''
-      // Only redirect to login for protected endpoints
-      if (!url.includes('/api/auth/session') && !url.includes('/api/auth/me')) {
+      // Only redirect to login for protected endpoints (not auth checks or checkout verification)
+      if (!url.includes('/api/auth/session') && !url.includes('/api/auth/me') && !url.includes('/api/checkout/session')) {
         router.push('/login')
       }
     }

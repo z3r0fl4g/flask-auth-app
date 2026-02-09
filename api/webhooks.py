@@ -2,14 +2,22 @@
 Webhook endpoints for external service integrations.
 
 Handles Clerk webhooks for user synchronization.
+Handles Stripe webhooks for payment confirmation and ticket issuance.
 """
 
 import os
+import json
 from flask import Blueprint, request, jsonify
 from svix.webhooks import Webhook, WebhookVerificationError
+import stripe
 
 from auth.models import User
 from auth import db
+from events.models import Order, Ticket
+from datetime import datetime
+
+# Initialize Stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 webhook_bp = Blueprint('webhooks', __name__)
 
@@ -181,3 +189,98 @@ def handle_user_deleted(data):
     db.session.commit()
 
     print(f"Deleted user: {email} (clerk_id: {clerk_id})")
+
+
+# ==================== Stripe Webhooks ====================
+
+@webhook_bp.route('/stripe', methods=['POST'])
+def stripe_webhook():
+    """
+    Handle Stripe webhook events for payment confirmation.
+
+    Events handled:
+    - checkout.session.completed: Issue tickets via Ticket Tailor
+
+    Returns:
+        JSON response with success status
+    """
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+    # If no webhook secret configured, accept the event (dev mode)
+    if webhook_secret:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, webhook_secret
+            )
+        except ValueError as e:
+            print(f"Invalid Stripe payload: {e}")
+            return jsonify({'error': 'Invalid payload'}), 400
+        except stripe.error.SignatureVerificationError as e:
+            print(f"Invalid Stripe signature: {e}")
+            return jsonify({'error': 'Invalid signature'}), 400
+    else:
+        # Dev mode: parse without verification
+        event = json.loads(payload)
+        print("WARNING: Stripe webhook signature not verified (no secret configured)")
+
+    event_type = event.get('type') if isinstance(event, dict) else event['type']
+    print(f"Received Stripe webhook: {event_type}")
+
+    try:
+        if event_type == 'checkout.session.completed':
+            session = event['data']['object']
+            handle_checkout_completed(session)
+
+        return jsonify({'received': True})
+
+    except Exception as e:
+        print(f"Error handling Stripe webhook {event_type}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def handle_checkout_completed(session):
+    """
+    Handle checkout.session.completed event.
+
+    Marks the order as completed after successful payment.
+
+    Args:
+        session: Stripe Checkout Session object
+    """
+    session_id = session.get('id')
+    payment_intent_id = session.get('payment_intent')
+
+    if not session_id:
+        print("Missing session ID in webhook")
+        return
+
+    # Find the order by Stripe session ID
+    order = Order.query.filter_by(stripe_session_id=session_id).first()
+
+    if not order:
+        print(f"Order not found for session: {session_id}")
+        return
+
+    if order.status == 'completed':
+        print(f"Order {order.order_number} already completed, skipping")
+        return
+
+    # Update order status
+    order.status = 'completed'
+    order.completed_at = datetime.utcnow()
+    if payment_intent_id:
+        order.stripe_payment_intent_id = payment_intent_id
+
+    db.session.commit()
+
+    print(f"Order {order.order_number} completed - {order.tickets.count()} tickets issued")
+
+    # Send confirmation email with tickets
+    try:
+        from services.email import send_order_confirmation
+        tickets_list = list(order.tickets.all())
+        send_order_confirmation(order, tickets_list)
+    except Exception as e:
+        print(f"Failed to send confirmation email: {e}")

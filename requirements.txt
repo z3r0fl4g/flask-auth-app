@@ -39,6 +39,12 @@ gevent==23.9.1
 # HTTP requests (for health checks)
 requests==2.31.0
 
+# Payments
+stripe==14.3.0
+
+# Slugify
+python-slugify==8.0.1
+
 # Development & Testing (optional)
 pytest==7.4.3
 pytest-flask==1.3.0

@@ -60,6 +60,9 @@ mail = Mail(app)
 # Initialize Database
 init_auth(app)
 
+# Import models so SQLAlchemy registers them before create_all
+from events.models import Event, TicketTier, Order, Ticket
+
 # Auto-create tables on startup (safe to run multiple times - uses CREATE IF NOT EXISTS)
 with app.app_context():
     db.create_all()
@@ -68,9 +71,19 @@ with app.app_context():
 # Register API blueprints
 from api.auth import api_auth_bp
 from api.webhooks import webhook_bp
+from api.events import events_bp
+from api.checkout import checkout_bp
+from api.tickets import tickets_bp
+from api.orders import orders_bp
+from api.checkin import checkin_bp
 
 app.register_blueprint(api_auth_bp, url_prefix='/api/auth')
 app.register_blueprint(webhook_bp, url_prefix='/api/webhooks')
+app.register_blueprint(events_bp, url_prefix='/api/events')
+app.register_blueprint(checkout_bp, url_prefix='/api/checkout')
+app.register_blueprint(tickets_bp, url_prefix='/api/tickets')
+app.register_blueprint(orders_bp, url_prefix='/api/orders')
+app.register_blueprint(checkin_bp, url_prefix='/api/checkin')
 
 # Register docs blueprint (for legacy Jinja templates)
 from auth.routes.docs import docs_bp
@@ -131,6 +144,11 @@ def index():
         'frontend': 'http://localhost:5173',
         'endpoints': {
             'auth': '/api/auth',
+            'events': '/api/events',
+            'checkout': '/api/checkout',
+            'orders': '/api/orders',
+            'tickets': '/api/tickets',
+            'checkin': '/api/checkin',
             'webhooks': '/api/webhooks'
         }
     })

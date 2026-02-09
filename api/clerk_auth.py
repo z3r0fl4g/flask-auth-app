@@ -94,9 +94,26 @@ def clerk_auth_required(f):
     looks up the local user by clerk_id, and sets g.current_user.
 
     Returns 401 if token is invalid or user not found.
+
+    Test Mode: If X-Test-User-Id header is provided and FLASK_ENV is development,
+    bypasses Clerk auth and uses the specified user ID.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Test mode bypass for development
+        # Allows testing authenticated endpoints without real Clerk tokens
+        test_user_id = request.headers.get('X-Test-User-Id')
+        flask_env = os.getenv('FLASK_ENV', 'development')
+
+        if test_user_id and flask_env != 'production':
+            try:
+                user = User.query.get(int(test_user_id))
+                if user:
+                    g.current_user = user
+                    return f(*args, **kwargs)
+            except (ValueError, TypeError):
+                pass  # Invalid user ID, fall through to normal auth
+
         # Extract token from Authorization header
         auth_header = request.headers.get('Authorization', '')
 

@@ -256,13 +256,14 @@ async function handleLogin() {
     if (result.status === "complete") {
       await setActive.value({ session: result.createdSessionId });
       router.push("/profile");
-    } else if (result.status === "needs_second_factor") {
-      // Store the sign-in attempt for 2FA verification
-      router.push("/2fa/verify");
     } else {
       // Handle other statuses
       console.log("Sign in status:", result.status);
-      error.value = "Please complete the sign-in process.";
+      if (result.status === "needs_second_factor") {
+        error.value = "This account has 2FA enabled. Please disable it in your account settings.";
+      } else {
+        error.value = `Unable to sign in. Status: ${result.status}`;
+      }
     }
   } catch (err) {
     console.error("Login error:", err);
