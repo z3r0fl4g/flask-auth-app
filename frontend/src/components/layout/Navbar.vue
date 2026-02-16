@@ -198,7 +198,7 @@
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center text-gray-700 hover:text-gray-900 focus:outline-none"
+              class="inline-flex h-10 w-10 items-center justify-center text-gray-700 hover:text-gray-900 focus:outline-hidden"
             >
               <span class="sr-only">Open navigation</span>
               <svg
@@ -268,7 +268,7 @@
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center text-gray-700 hover:text-gray-900 focus:outline-none"
+              class="inline-flex h-10 w-10 items-center justify-center text-gray-700 hover:text-gray-900 focus:outline-hidden"
             >
               <span class="sr-only">Open navigation</span>
               <svg

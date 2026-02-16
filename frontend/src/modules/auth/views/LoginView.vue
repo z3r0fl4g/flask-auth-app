@@ -17,7 +17,7 @@
         <!-- Error Message -->
         <div
           v-if="error"
-          class="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-sm text-rose-600"
+          class="mb-4 rounded-xl bg-red-50 border border-red-300 px-3 py-2 text-sm text-red-800"
         >
           {{ error }}
         </div>
@@ -38,7 +38,7 @@
               placeholder="you@example.com"
               required
               autocomplete="email"
-              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition"
+              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-hidden transition"
               :class="{ 'border-rose-400': emailField.error.value }"
               @blur="validateEmailField"
             />
@@ -68,7 +68,7 @@
                 placeholder="••••••••"
                 required
                 autocomplete="current-password"
-                class="w-full px-3 py-2.5 pr-10 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition"
+                class="w-full px-3 py-2.5 pr-10 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-hidden transition"
                 :class="{ 'border-rose-400': passwordField.error.value }"
                 @blur="validatePasswordField"
               />

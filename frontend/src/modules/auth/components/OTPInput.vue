@@ -9,7 +9,7 @@
       inputmode="numeric"
       maxlength="1"
       pattern="[0-9]"
-      class="flex-1 max-w-[3.25rem] h-14 text-center text-2xl font-semibold rounded-xl border-2 border-gray-200 bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 outline-none transition-all"
+      class="flex-1 max-w-[3.25rem] h-14 text-center text-2xl font-semibold rounded-xl border-2 border-gray-200 bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 outline-hidden transition-all"
       :class="{ 'border-red-500': error }"
       @input="handleInput(index - 1, $event)"
       @keydown="handleKeydown(index - 1, $event)"

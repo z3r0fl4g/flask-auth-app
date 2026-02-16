@@ -48,7 +48,7 @@
                 v-model="newsletterEmail"
                 type="email"
                 placeholder="name@email.com"
-                class="flex-1 bg-transparent placeholder:text-gray-400 focus:outline-none"
+                class="flex-1 bg-transparent placeholder:text-gray-400 focus:outline-hidden"
               >
             </div>
             <button

@@ -14,7 +14,7 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <div v-if="error" class="mb-6 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
             {{ error }}
           </div>
 
@@ -49,7 +49,7 @@
                   placeholder="Re-enter your new password"
                   required
                   autocomplete="new-password"
-                  class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-none focus:ring-2 focus:ring-[#8338ec]/20"
+                  class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-hidden focus:ring-2 focus:ring-[#8338ec]/20"
                   :class="{ 'border-rose-500': confirmError }"
                 />
               </div>

@@ -470,7 +470,7 @@ async function handleCheckout(items) {
               <!-- Checkout Error -->
               <div
                 v-if="checkoutError"
-                class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700"
+                class="mb-4 p-4 bg-red-50 border border-red-300 rounded-xl text-red-800"
               >
                 {{ checkoutError }}
               </div>
@@ -575,7 +575,7 @@ async function handleCheckout(items) {
                     <!-- Checkout Error -->
                     <div
                       v-if="checkoutError"
-                      class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700"
+                      class="mb-4 p-4 bg-red-50 border border-red-300 rounded-xl text-red-800"
                     >
                       {{ checkoutError }}
                     </div>

@@ -14,12 +14,12 @@
           </div>
 
           <!-- Success Message -->
-          <div v-if="success" class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div v-if="success" class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {{ success }}
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <div v-if="error" class="mb-6 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
             {{ error }}
           </div>
 
@@ -38,7 +38,7 @@
                   type="email"
                   placeholder="name@email.com"
                   required
-                  class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-none focus:ring-2 focus:ring-[#8338ec]/20"
+                  class="w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm text-gray-700 shadow-sm focus:border-[#8338ec]/60 focus:outline-hidden focus:ring-2 focus:ring-[#8338ec]/20"
                 />
               </div>
             </div>

@@ -80,6 +80,62 @@ Retain the 8px grid. Helpers: `4px`, `8px`, `12px`, `16px`, `24px`, `32px`, `48p
 - Provide descriptive alt text (e.g., “Speaker portrait”).  
 - Keyboard navigation must reach search, nav items, form controls, and modal actions.
 
+## Notifications & Feedback
+
+### Three Feedback Tiers
+
+| Tier | Component | When to Use | Duration |
+|------|-----------|-------------|----------|
+| **Toast** | `vue-sonner` `<Toaster>` | Non-blocking confirmations (save, delete, publish) | 4s auto-dismiss |
+| **Inline error** | Per-field `<p>` below input | Field-level validation (email format, required) | Persistent until fixed |
+| **Form banner** | `<div>` at top of form | Server errors, auth failures, multi-field issues | Persistent until dismissed/fixed |
+
+### Toast Colors (vue-sonner CSS overrides in `style.css`)
+
+| Type | Background | Border | Text |
+|------|-----------|--------|------|
+| `success` | `green-50` | `green-200` | `green-800` |
+| `error` | `red-50` | `red-200` | `red-800` |
+| `warning` | `amber-900` | `amber-700` | `amber-100` |
+| `info` | `gray-50` | `gray-200` | `gray-800` |
+
+Usage:
+```js
+import { toast } from 'vue-sonner'
+toast.success('Event published!')
+toast.error('Failed to save changes')
+toast.warning('Event saved as draft. Publishing failed.')
+```
+
+### Inline Field Errors
+
+Standard classes per state:
+- **Error**: `text-xs text-rose-500` (below input), input border: `border-rose-400`
+- **Success**: `text-xs text-green-600`
+- **Hint**: `text-xs text-gray-400`
+
+### Form Banner (Unified Standard)
+
+All form error banners use this exact class string:
+```
+rounded-xl border border-red-300 bg-red-50 text-red-800
+```
+
+For success banners:
+```
+rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700
+```
+
+Padding: `px-4 py-3` (auth views) or `p-4` (event views). Always use `text-sm`.
+
+### When to Use What
+
+- **User performs an action** (create, delete, publish) → **Toast**
+- **Field has a validation issue** (empty, wrong format) → **Inline error** below the field
+- **Server returns an error** for the whole form → **Form banner** at top
+- **Multiple things go wrong** (partial success) → **Toast warning** + keep form open
+- **Never use** `alert()` or `confirm()` — use `toast` and `<Modal>` respectively
+
 ## Implementation Notes
 1. Define CSS variables (or Tailwind theme tokens) for each palette step and neutral tone.  
 2. Apply shared button/input classes to avoid divergence.  

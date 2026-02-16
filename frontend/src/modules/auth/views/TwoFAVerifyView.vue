@@ -16,7 +16,7 @@
         </div>
 
         <!-- Error Message -->
-        <div v-if="error" class="mb-6 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-sm">
+        <div v-if="error" class="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-300 text-red-800 text-sm">
           {{ error }}
         </div>
 
@@ -54,9 +54,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useSignIn, useSignUp } from '@clerk/vue'
+import { toast } from 'vue-sonner'
 import OTPInput from '../components/OTPInput.vue'
 
 const router = useRouter()
@@ -153,8 +154,8 @@ async function resend() {
       resending.value = false
       return
     }
-    // Show success
-    alert('New code sent!')
+    toast.success('New code sent!')
+    error.value = null
   } catch (err) {
     console.error('Resend error:', err)
     error.value = err.errors?.[0]?.message || 'Failed to resend code'

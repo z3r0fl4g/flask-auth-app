@@ -84,6 +84,9 @@ dist/
 *.out
 *.app
 
+# Backups (may contain secrets)
+backups/
+
 # Temp files
 *.tmp
 *.bak
